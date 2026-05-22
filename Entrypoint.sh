@@ -34,4 +34,3 @@ fi
  
 # Start the garmin-mcp server
 exec garmin-mcp
- 
