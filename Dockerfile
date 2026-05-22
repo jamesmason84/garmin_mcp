@@ -15,7 +15,7 @@ COPY src ./src
 RUN uv sync --frozen --no-dev
 
 # Create a location to persist Garmin tokens (optional but recommended)
-VOLUME ["/root/.garminconnect"]
+# VOLUME ["/root/.garminconnect"]
 
 # Default Streamable HTTP port
 EXPOSE 8000
