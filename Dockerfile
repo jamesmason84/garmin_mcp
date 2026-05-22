@@ -30,6 +30,8 @@ EXPOSE 8000
 # - GARMIN_MCP_PORT (defaults to 8000)
 
 # Default command: run the MCP server via uv
-ENTRYPOINT ["uv", "run", "garmin-mcp"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 
 
