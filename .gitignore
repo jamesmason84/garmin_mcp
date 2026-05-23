@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# local-only dev harness for tool-registration checks
+_graft_check.py
