@@ -316,7 +316,7 @@ def main():
                 await _orig_call(self, scope, receive, send)
             _Mgr.__call__ = _allow_any_host
         except Exception as e:
-                print(f"Host patch failed: {e}")
+            print(f"Host patch failed: {e}")
             pass
         
         try:
