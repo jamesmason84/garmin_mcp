@@ -225,6 +225,17 @@ def main():
         app.run()
     else:
         print(f"Starting MCP with transport={transport}, host={host}, port={port}, path={path}")
+        # TEMPORARY DIAGNOSTICS - remove after next deploy
+        try:
+            import mcp.server.streamable_http as _msh
+            import inspect
+            src = inspect.getsource(_msh)
+            print("[DIAG] streamable_http source:")
+            # Print in chunks so Railway doesn't truncate
+            for i in range(0, min(len(src), 4000), 200):
+                print(src[i:i+200])
+        except Exception as e:
+            print(f"[DIAG] failed: {e}")        
         # Provide simple health endpoints by wrapping the ASGI app when possible
         class _HealthWrapper:
             def __init__(self, inner):
