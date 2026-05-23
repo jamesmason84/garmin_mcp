@@ -315,9 +315,15 @@ def main():
                     scope = {**scope, "headers": headers}
                 await _orig_call(self, scope, receive, send)
             _Mgr.__call__ = _allow_any_host
-        except Exception:
+        except Exception as e:
+                print(f"Host patch failed: {e}")
             pass
-    
+        
+        try:
+            app.settings.host = "*"
+        except Exception as e:
+            print(f"Host settings patch failed: {e}")
+            
         # Try to run with explicit parameters first
         try:
             app.run(transport=transport, host=host, port=port, path=path, allowed_hosts=["*"])
