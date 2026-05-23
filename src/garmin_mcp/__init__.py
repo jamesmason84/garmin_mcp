@@ -229,11 +229,10 @@ def main():
         class _HealthWrapper:
             def __init__(self, inner):
                 self.inner = inner
-
             async def __call__(self, scope, receive, send):
-                if scope.get("type") == "http" and scope.get("method") == "GET":
+                if scope.get("type") == "http":
                     path_value = scope.get("path", "")
-                    if path_value in ("/", "/healthz", "/readyz"):
+                    if scope.get("method") == "GET" and path_value in ("/", "/healthz", "/readyz"):
                         body = b'{"status":"ok","service":"garmin-mcp"}'
                         await send({
                             "type": "http.response.start",
@@ -242,8 +241,15 @@ def main():
                         })
                         await send({"type": "http.response.body", "body": body})
                         return
+                    # Rewrite Host header to localhost so MCP's DNS-rebinding
+                    # protection doesn't reject Railway's domain with a 421.
+                    scope = dict(scope)
+                    scope["headers"] = [
+                        (b"host", b"localhost") if k.lower() == b"host" else (k, v)
+                        for k, v in scope.get("headers", [])
+                    ]
                 return await self.inner(scope, receive, send)
-
+                
         # Aggressively monkey-patch uvicorn at multiple levels to force 0.0.0.0 binding
         if host == "0.0.0.0":
             try:
@@ -253,12 +259,25 @@ def main():
                 
                 # Patch uvicorn.run
                 original_run = uvicorn.run
-                def patched_run(app, *args, **kwargs):
+                def patched_run(app_arg, *args, **kwargs):
                     if "host" not in kwargs or kwargs.get("host") == "127.0.0.1":
                         kwargs["host"] = "0.0.0.0"
                     if "port" not in kwargs and port:
                         kwargs["port"] = port
-                    return original_run(app, *args, **kwargs)
+                    # Wrap app to rewrite Host header before MCP sees it
+                    # (fixes 421 from DNS-rebinding protection on Railway)
+                    class _HostRewrite:
+                        def __init__(self, inner): self.inner = inner
+                        async def __call__(self, scope, receive, send):
+                            if scope.get("type") == "http":
+                                scope = dict(scope)
+                                scope["headers"] = [
+                                    (b"host", b"localhost") if k.lower() == b"host" else (k, v)
+                                    for k, v in scope.get("headers", [])
+                                ]
+                            return await self.inner(scope, receive, send)
+                    print("Wrapping app with host-rewrite middleware")
+                    return original_run(_HostRewrite(app_arg), *args, **kwargs)
                 uvicorn.run = patched_run
                 
                 # Patch Config.__init__ to force host
