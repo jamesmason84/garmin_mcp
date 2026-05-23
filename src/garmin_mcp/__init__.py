@@ -301,6 +301,23 @@ def main():
                 return
         except Exception:
             pass
+
+        # Allow any host header (required for Railway/remote deployments)
+        try:
+            from mcp.server.streamable_http import StreamableHTTPSessionManager as _Mgr
+            _orig_call = _Mgr.__call__
+            async def _allow_any_host(self, scope, receive, send):
+                if scope.get("type") == "http":
+                    headers = [
+                        (b"host", b"localhost") if k == b"host" else (k, v)
+                        for k, v in scope.get("headers", [])
+                    ]
+                    scope = {**scope, "headers": headers}
+                await _orig_call(self, scope, receive, send)
+            _Mgr.__call__ = _allow_any_host
+        except Exception:
+            pass
+    
         # Try to run with explicit parameters first
         try:
             app.run(transport=transport, host=host, port=port, path=path, allowed_hosts=["*"])
